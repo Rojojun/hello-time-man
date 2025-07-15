@@ -1,0 +1,55 @@
+{
+  "name": "hello-time-man",
+  "version": "1.0.2",
+  "description": "🕐 Simple CLI tool that shows current time with friendly greetings",
+  "keywords": [
+    "cli",
+    "time",
+    "greeting", 
+    "java",
+    "graalvm",
+    "cross-platform",
+    "timezone",
+    "datetime"
+  ],
+  "author": "rojojun",
+  "license": "MIT",
+  "homepage": "https://github.com/rojojun/hello-time-man",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rojojun/hello-time-man.git"
+  },
+  "bugs": {
+    "url": "https://github.com/rojojun/hello-time-man/issues"
+  },
+  "bin": {
+    "hello-time-man": "./bin/hello-time-man",
+    "hello": "./bin/hello-time-man"
+  },
+  "scripts": {
+    "postinstall": "node scripts/install.js",
+    "build": "gradle build",
+    "test": "node scripts/test.js"
+  },
+  "files": [
+    "bin/",
+    "lib/",
+    "scripts/",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=14",
+    "java": ">=11"
+  },
+  "os": [
+    "darwin",
+    "linux", 
+    "win32"
+  ],
+  "cpu": [
+    "x64",
+    "arm64"
+  ],
+  "preferGlobal": true
+}

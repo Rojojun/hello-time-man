@@ -1,0 +1,77 @@
+plugins {
+    id 'java'
+    id 'application'
+    id 'org.graalvm.buildtools.native' version '0.9.28'
+}
+
+group = 'com.hellotimeman'
+version = '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'info.picocli:picocli:4.7.5'
+    annotationProcessor 'info.picocli:picocli-codegen:4.7.5'
+}
+
+application {
+    mainClass = 'com.hellotimeman.Main'
+}
+
+// JAR 설정
+jar {
+    manifest {
+        attributes(
+                'Main-Class': 'com.hellotimeman.Main'
+        )
+    }
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+// GraalVM Native Image 설정
+graalvmNative {
+    binaries {
+        main {
+            imageName = 'hello-time-man'
+            mainClass = 'com.hellotimeman.Main'
+            buildArgs.add('--no-fallback')
+            buildArgs.add('--enable-preview')
+            buildArgs.add('-H:+ReportExceptionStackTraces')
+            buildArgs.add('--initialize-at-build-time')
+        }
+    }
+}
+
+// Fat JAR 태스크 (GraalVM 없이 사용할 경우)
+task fatJar(type: Jar) {
+    archiveClassifier = 'fat'
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    manifest {
+        attributes 'Main-Class': 'com.hellotimeman.Main'
+    }
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    with jar
+}
+
+// 빌드 정보를 리소스 파일로 생성
+task generateBuildInfo {
+    doLast {
+        def buildInfoDir = file("$buildDir/resources/main")
+        buildInfoDir.mkdirs()
+
+        def buildInfo = file("$buildInfoDir/build.properties")
+        buildInfo.text = """
+version=${version}
+buildTime=${new Date().format('yyyy-MM-dd HH:mm:ss')}
+""".trim()
+    }
+}
+
+processResources.dependsOn generateBuildInfo
