@@ -1,6 +1,6 @@
 {
   "name": "hello-time-man",
-  "version": "1.1.0",
+  "version": "1.1.2",
   "description": "🕐 Simple CLI tool that shows current time with friendly greetings",
   "keywords": [
     "cli",
