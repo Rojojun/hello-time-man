@@ -41,7 +41,8 @@
     "LICENSE"
   ],
   "engines": {
-    "node": ">=14"
+    "node": ">=14",
+    "java": ">=11"
   },
   "os": [
     "darwin",
@@ -52,13 +53,5 @@
     "x64",
     "arm64"
   ],
-  "preferGlobal": true,
-  "peerDependencies": {
-    "java": ">=11"
-  },
-  "peerDependenciesMeta": {
-    "java": {
-      "optional": false
-    }
-  }
+  "preferGlobal": true
 }
