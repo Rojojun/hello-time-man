@@ -1,11 +1,11 @@
 {
   "name": "hello-time-man",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "description": "🕐 Simple CLI tool that shows current time with friendly greetings",
   "keywords": [
     "cli",
     "time",
-    "greeting", 
+    "greeting",
     "java",
     "graalvm",
     "cross-platform",
@@ -23,13 +23,15 @@
     "url": "https://github.com/rojojun/hello-time-man/issues"
   },
   "bin": {
-    "hello-time-man": "./bin/hello-time-man",
-    "hello": "./bin/hello-time-man"
+    "hello-time-man": "./bin/hello",
+    "hello": "./bin/hello"
   },
   "scripts": {
     "postinstall": "node scripts/install.js",
     "build": "gradle build",
-    "test": "node scripts/test.js"
+    "test": "node scripts/test.js",
+    "check-java": "java -version || echo 'Java not found. Install from https://adoptium.net/'",
+    "clean": "node -e \"const fs = require('fs'); const path = require('path'); const binPath = path.join(__dirname, 'bin', 'hello'); if (fs.existsSync(binPath)) fs.unlinkSync(binPath); console.log('Cleaned!');\""
   },
   "files": [
     "bin/",
@@ -39,17 +41,24 @@
     "LICENSE"
   ],
   "engines": {
-    "node": ">=14",
-    "java": ">=11"
+    "node": ">=14"
   },
   "os": [
     "darwin",
-    "linux", 
+    "linux",
     "win32"
   ],
   "cpu": [
     "x64",
     "arm64"
   ],
-  "preferGlobal": true
+  "preferGlobal": true,
+  "peerDependencies": {
+    "java": ">=11"
+  },
+  "peerDependenciesMeta": {
+    "java": {
+      "optional": false
+    }
+  }
 }
