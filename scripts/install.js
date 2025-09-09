@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 
 console.log('🕐 Installing hello-time-man...');
 
@@ -13,81 +14,109 @@ const libDir = path.join(__dirname, '..', 'lib');
 if (!fs.existsSync(binDir)) fs.mkdirSync(binDir, { recursive: true });
 if (!fs.existsSync(libDir)) fs.mkdirSync(libDir, { recursive: true });
 
-const binaryName = platform === 'win32' ? 'hello-time-man.exe' : 'hello-time-man';
-const targetBinary = path.join(binDir, binaryName);
-
 // JAR 파일 확인
 const prebuiltJar = path.join(libDir, 'hello-time-man.jar');
 if (!fs.existsSync(prebuiltJar)) {
-    console.error('❌ JAR file not found in package');
-    console.error('This is a packaging issue. Please report at:');
-    console.error('https://github.com/rojojun/hello-time-man/issues');
+    console.error('[ERROR] JAR file not found in package');
+    console.error('[ERROR] This is a packaging issue. Please report at:');
+    console.error('[ERROR] https://github.com/rojojun/hello-time-man/issues');
     process.exit(1);
 }
 
-console.log('📦 Installing JAR version...');
+console.log('[INFO] Installing JAR version...');
 const stats = fs.statSync(prebuiltJar);
-console.log(`📊 JAR size: ${Math.round(stats.size / 1024)}KB`);
+console.log(`[INFO] JAR size: ${Math.round(stats.size / 1024)}KB`);
 
-// 실행 스크립트 생성
-const script = platform === 'win32' ? createWindowsScript() : createUnixScript();
-fs.writeFileSync(targetBinary, script);
-if (platform !== 'win32') fs.chmodSync(targetBinary, '755');
+// 크로스 플랫폼 실행기 생성 (Node.js 기반)
+const launcherScript = createNodeLauncher();
+const launcherPath = path.join(binDir, 'hello');
 
-console.log('✅ Installation completed!');
-console.log('🚀 Try: hello or hello-time-man');
+fs.writeFileSync(launcherPath, launcherScript);
 
-function createUnixScript() {
-    return `#!/usr/bin/env bash
-# hello-time-man launcher script
-
-if ! command -v java &> /dev/null; then
-    echo "❌ Java 11+ required but not found."
-    echo "   Download: https://adoptium.net/"
-    echo "   macOS: brew install openjdk"
-    echo "   Ubuntu: sudo apt install openjdk-11-jre"
-    exit 1
-fi
-
-# npm 글로벌 설치 경로에서 JAR 찾기
-SCRIPT_DIR="$( cd "$( dirname "\${BASH_SOURCE[0]}" )" && pwd )"
-
-if [[ "$SCRIPT_DIR" == */bin ]]; then
-    # 글로벌 설치 (예: /opt/homebrew/bin)
-    NPM_ROOT="$(npm root -g 2>/dev/null || echo '/opt/homebrew/lib/node_modules')"
-    JAR_PATH="$NPM_ROOT/hello-time-man/lib/hello-time-man.jar"
-else
-    # 로컬 설치
-    JAR_PATH="$SCRIPT_DIR/../lib/hello-time-man.jar"
-fi
-
-if [ ! -f "$JAR_PATH" ]; then
-    echo "❌ JAR file not found at: $JAR_PATH"
-    echo "   Try reinstalling: npm install -g hello-time-man"
-    exit 1
-fi
-
-exec java -jar "$JAR_PATH" "$@"
-`;
+// Unix에서는 실행 권한 부여
+if (platform !== 'win32') {
+    fs.chmodSync(launcherPath, '755');
 }
 
-function createWindowsScript() {
-    return `@echo off
-java -version >nul 2>&1
-if %errorlevel% neq 0 (
-    echo ❌ Java 11+ required. Download: https://adoptium.net/
-    exit /b 1
-)
+console.log('[INFO] Installation completed!');
+console.log('[INFO] Try: hello or hello-time-man');
 
-for /f "tokens=*" %%i in ('npm root -g 2^>nul') do set NPM_ROOT=%%i
-if "%NPM_ROOT%"=="" set NPM_ROOT=%APPDATA%\\npm\\node_modules
+function createNodeLauncher() {
+    return `#!/usr/bin/env node
 
-set JAR_PATH=%NPM_ROOT%\\hello-time-man\\lib\\hello-time-man.jar
-if not exist "%JAR_PATH%" (
-    echo ❌ JAR not found. Try: npm install -g hello-time-man
-    exit /b 1
-)
+const { spawn } = require('child_process');
+const path = require('path');
+const fs = require('fs');
 
-java -jar "%JAR_PATH%" %*
+async function checkJava() {
+    return new Promise((resolve) => {
+        const java = spawn('java', ['-version'], { 
+            stdio: 'pipe',
+            shell: process.platform === 'win32'
+        });
+        java.on('close', (code) => resolve(code === 0));
+        java.on('error', () => resolve(false));
+    });
+}
+
+function findJarPath() {
+    // 상대 경로로 JAR 찾기 (설치 구조에 따라)
+    const possiblePaths = [
+        path.join(__dirname, '..', 'lib', 'hello-time-man.jar'),
+        path.join(__dirname, '..', '..', '..', 'hello-time-man', 'lib', 'hello-time-man.jar'),
+        // 글로벌 설치 시 npm root 기반 경로
+        path.join(require.main.filename, '..', '..', 'lib', 'hello-time-man.jar')
+    ];
+    
+    return possiblePaths.find(p => fs.existsSync(p));
+}
+
+async function main() {
+    // Java 설치 확인
+    if (!(await checkJava())) {
+        console.error('❌ Java 11+ required but not found.');
+        console.error('   Download: https://adoptium.net/');
+        
+        // 플랫폼별 설치 가이드
+        switch (process.platform) {
+            case 'darwin':
+                console.error('   macOS: brew install openjdk');
+                break;
+            case 'linux':
+                console.error('   Ubuntu: sudo apt install openjdk-11-jre');
+                console.error('   CentOS: sudo yum install java-11-openjdk');
+                break;
+            case 'win32':
+                console.error('   Windows: winget install Eclipse.Temurin.11.JRE');
+                break;
+        }
+        process.exit(1);
+    }
+    
+    // JAR 파일 찾기
+    const jarPath = findJarPath();
+    if (!jarPath) {
+        console.error('❌ JAR file not found.');
+        console.error('   Try reinstalling: npm install -g hello-time-man');
+        process.exit(1);
+    }
+    
+    // Java 실행
+    const java = spawn('java', ['-jar', jarPath, ...process.argv.slice(2)], {
+        stdio: 'inherit',
+        shell: process.platform === 'win32'
+    });
+    
+    java.on('exit', (code) => process.exit(code || 0));
+    java.on('error', (err) => {
+        console.error('❌ Error running Java:', err.message);
+        process.exit(1);
+    });
+}
+
+main().catch(err => {
+    console.error('❌ Unexpected error:', err.message);
+    process.exit(1);
+});
 `;
 }

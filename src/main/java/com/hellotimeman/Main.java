@@ -13,7 +13,7 @@ import java.util.Locale;
 @Command(
         name = "hello-time-man",
         description = "🕐 Shows current time with a friendly greeting",
-        version = "1.0.0",
+        version = "1.1.0",
         mixinStandardHelpOptions = true
 )
 public class Main implements Runnable {
